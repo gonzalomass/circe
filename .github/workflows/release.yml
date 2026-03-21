@@ -1,0 +1,139 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write   # needed to create GitHub Release and upload artifacts
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact_ext: dmg
+          - os: windows-latest
+            artifact_ext: exe
+          - os: ubuntu-latest
+            artifact_ext: AppImage
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build app
+        run: npm run build
+
+      # ── macOS: sign + notarize ──────────────────────────────────────────────
+      - name: Package (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npm run package
+
+      # ── Windows: sign (OV cert or EV/AKV) ──────────────────────────────────
+      - name: Package (Windows — standard OV cert)
+        if: matrix.os == 'windows-latest' && secrets.WIN_SIGN_MODE != 'akv'
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK_WIN }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD_WIN }}
+        run: npm run package
+
+      - name: Package (Windows — EV cert via Azure Key Vault)
+        if: matrix.os == 'windows-latest' && secrets.WIN_SIGN_MODE == 'akv'
+        env:
+          WIN_SIGN_MODE: akv
+          AKV_TENANT_ID: ${{ secrets.AKV_TENANT_ID }}
+          AKV_CLIENT_ID: ${{ secrets.AKV_CLIENT_ID }}
+          AKV_CLIENT_SECRET: ${{ secrets.AKV_CLIENT_SECRET }}
+          AKV_VAULT_URI: ${{ secrets.AKV_VAULT_URI }}
+          AKV_CERT_NAME: ${{ secrets.AKV_CERT_NAME }}
+        run: |
+          dotnet tool install --global AzureSignTool
+          npm run package
+
+      # ── Linux: no signing needed ────────────────────────────────────────────
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: npm run package
+
+      # ── Upload artifacts ────────────────────────────────────────────────────
+      - name: Find artifact (macOS)
+        if: matrix.os == 'macos-latest'
+        id: find_mac
+        shell: bash
+        run: echo "path=$(ls dist/*.dmg | head -1)" >> $GITHUB_OUTPUT
+
+      - name: Find artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        id: find_win
+        shell: bash
+        run: echo "path=$(ls dist/*.exe | head -1)" >> $GITHUB_OUTPUT
+
+      - name: Find artifact (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        id: find_linux
+        shell: bash
+        run: echo "path=$(ls dist/*.AppImage | head -1)" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: circe-${{ matrix.artifact_ext }}-${{ github.ref_name }}
+          path: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.AppImage
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: false
+
+      - name: List artifacts
+        run: find artifacts/ -type f | sort
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Circe ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}   # e.g. v1.0.0-beta → prerelease
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.dmg
+            artifacts/**/*.exe
+            artifacts/**/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
