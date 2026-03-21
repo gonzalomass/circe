@@ -54,13 +54,12 @@ export function OutputConsole() {
     }
   }, [activeProcessId, processList]);
 
-  const lines: OutputLine[] = activeProcessId ? outputs[activeProcessId] || [] : [];
-
   const filteredLines = useMemo(() => {
+    const lines: OutputLine[] = activeProcessId ? outputs[activeProcessId] || [] : [];
     if (!searchQuery) return lines;
     const lower = searchQuery.toLowerCase();
     return lines.filter((l) => l.text.toLowerCase().includes(lower));
-  }, [lines, searchQuery]);
+  }, [activeProcessId, outputs, searchQuery]);
 
   // Auto-scroll on new output
   useEffect(() => {
