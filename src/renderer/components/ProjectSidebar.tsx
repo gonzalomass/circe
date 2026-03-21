@@ -72,12 +72,22 @@ export function ProjectSidebar() {
 
   return (
     <aside className="w-56 flex-shrink-0 flex flex-col h-full" style={{ background: 'rgba(255,255,255,0.03)', borderRight: '1px solid rgba(255,255,255,0.06)' }}>
-      {/* Header */}
-      <div className="px-4 py-4 flex items-center gap-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        <CirceSignil />
-        <div>
-          <div className="text-sm font-semibold text-text-primary tracking-wide">Circe</div>
-          <div className="text-xs text-text-tertiary" style={{ fontSize: '0.65rem' }}>Script Manager</div>
+      {/* Header — left padding accounts for macOS traffic light buttons (hiddenInset) */}
+      <div
+        className="flex items-center gap-2.5"
+        style={{
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          paddingLeft: '80px', paddingRight: '16px',
+          paddingTop: '12px', paddingBottom: '12px',
+          WebkitAppRegion: 'drag' as React.CSSProperties['WebkitAppRegion'],
+        }}
+      >
+        <div style={{ WebkitAppRegion: 'no-drag' as React.CSSProperties['WebkitAppRegion'] }} className="flex items-center gap-2.5">
+          <CirceSignil />
+          <div>
+            <div className="text-sm font-semibold text-text-primary tracking-wide">Circe</div>
+            <div className="text-xs text-text-tertiary" style={{ fontSize: '0.65rem' }}>Script Manager</div>
+          </div>
         </div>
       </div>
 

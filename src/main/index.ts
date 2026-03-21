@@ -13,7 +13,9 @@ function createWindow(): BrowserWindow {
     minWidth: 800,
     minHeight: 600,
     title: 'Circe',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#070b14',
+    titleBarStyle: 'hiddenInset', // traffic lights inset into content, no native title bar
+    trafficLightPosition: { x: 14, y: 16 }, // vertically centered with sidebar header
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
