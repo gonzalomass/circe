@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circe — Desktop Script Manager</title>
+  <meta name="description" content="Run, monitor, and manage npm scripts across all your projects. No terminal required." />
+  <meta property="og:title" content="Circe — Desktop Script Manager" />
+  <meta property="og:description" content="Run, monitor, and manage npm scripts across all your projects. No terminal required." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --border:    #1e1e2e;
+      --accent:    #7c3aed;
+      --accent-hi: #a855f7;
+      --accent-lo: #4c1d95;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --mac:       #a855f7;
+      --win:       #3b82f6;
+      --lnx:       #22c55e;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Syne', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── noise overlay ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── grid lines ── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 64px 64px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── ambient glow ── */
+    .glow {
+      position: fixed;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .glow-1 { top: -200px; left: -100px; background: radial-gradient(circle, rgba(124,58,237,.25) 0%, transparent 70%); }
+    .glow-2 { bottom: -200px; right: -100px; background: radial-gradient(circle, rgba(168,85,247,.15) 0%, transparent 70%); }
+
+    main { position: relative; z-index: 1; }
+
+    /* ── nav ── */
+    nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 24px 48px;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(10,10,15,.8);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hi) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      box-shadow: 0 0 16px rgba(124,58,237,.5);
+    }
+
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── hero ── */
+    .hero {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 100px 48px 80px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(124,58,237,.12);
+      border: 1px solid rgba(124,58,237,.3);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--accent-hi);
+      margin-bottom: 32px;
+      animation: fadeUp .6s ease both;
+    }
+
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-hi);
+      box-shadow: 0 0 8px var(--accent-hi);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    h1 {
+      font-size: clamp(48px, 8vw, 80px);
+      font-weight: 800;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      animation: fadeUp .6s .1s ease both;
+    }
+
+    .gradient-text {
+      background: linear-gradient(135deg, #c4b5fd 0%, var(--accent-hi) 50%, var(--accent) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 20px;
+      color: var(--muted);
+      max-width: 540px;
+      margin: 0 auto 48px;
+      line-height: 1.6;
+      font-weight: 400;
+      animation: fadeUp .6s .2s ease both;
+    }
+
+    /* ── version badge ── */
+    #version-info {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 40px;
+      animation: fadeUp .6s .25s ease both;
+    }
+
+    #version-info .ver { color: var(--accent-hi); }
+
+    /* ── download cards ── */
+    .download-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 860px;
+      margin: 0 auto 64px;
+      animation: fadeUp .6s .3s ease both;
+    }
+
+    @media (max-width: 680px) {
+      .download-grid { grid-template-columns: 1fr; }
+    }
+
+    .dl-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+      transition: border-color .2s, transform .2s, box-shadow .2s;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .dl-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    .dl-card.mac::before  { background: radial-gradient(circle at 0% 0%, rgba(168,85,247,.08) 0%, transparent 60%); }
+    .dl-card.win::before  { background: radial-gradient(circle at 0% 0%, rgba(59,130,246,.08) 0%, transparent 60%); }
+    .dl-card.lnx::before  { background: radial-gradient(circle at 0% 0%, rgba(34,197,94,.08) 0%, transparent 60%); }
+
+    .dl-card:hover { transform: translateY(-2px); }
+    .dl-card.mac:hover { border-color: rgba(168,85,247,.5); box-shadow: 0 8px 32px rgba(168,85,247,.15); }
+    .dl-card.win:hover { border-color: rgba(59,130,246,.5);  box-shadow: 0 8px 32px rgba(59,130,246,.15); }
+    .dl-card.lnx:hover { border-color: rgba(34,197,94,.5);   box-shadow: 0 8px 32px rgba(34,197,94,.15); }
+    .dl-card:hover::before { opacity: 1; }
+
+    .dl-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .dl-card.mac .dl-icon { background: rgba(168,85,247,.15); }
+    .dl-card.win .dl-icon { background: rgba(59,130,246,.15); }
+    .dl-card.lnx .dl-icon { background: rgba(34,197,94,.15); }
+
+    .dl-label {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .dl-meta {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .dl-pill {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      width: 100%;
+      justify-content: center;
+      transition: opacity .2s;
+    }
+
+    .dl-pill:hover { opacity: .85; }
+
+    .dl-card.mac .dl-pill { background: rgba(168,85,247,.2); color: #c4b5fd; }
+    .dl-card.win .dl-pill { background: rgba(59,130,246,.2);  color: #93c5fd; }
+    .dl-card.lnx .dl-pill { background: rgba(34,197,94,.2);   color: #86efac; }
+
+    .dl-loading { opacity: .4; font-family: 'Space Mono', monospace; font-size: 12px; }
+
+    /* ── requirements ── */
+    .reqs {
+      max-width: 860px;
+      margin: 0 auto 80px;
+      padding: 0 48px;
+      animation: fadeUp .6s .4s ease both;
+    }
+
+    .reqs-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    @media (max-width: 680px) {
+      .reqs-grid { grid-template-columns: 1fr; }
+    }
+
+    .req-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .req-os {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+
+    .req-detail {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .section-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── changelog ── */
+    .changelog {
+      max-width: 860px;
+      margin: 0 auto 100px;
+      padding: 0 48px;
+      animation: fadeUp .6s .5s ease both;
+    }
+
+    #changelog-entries {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .cl-entry {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 28px;
+    }
+
+    .cl-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .cl-version {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      color: var(--accent-hi);
+      font-weight: 700;
+    }
+
+    .cl-date {
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .cl-latest {
+      display: inline-block;
+      background: rgba(124,58,237,.2);
+      border: 1px solid rgba(124,58,237,.4);
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--accent-hi);
+      margin-left: 10px;
+    }
+
+    .cl-body {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .cl-body ul { padding-left: 18px; }
+    .cl-body li { margin-bottom: 4px; }
+    .cl-empty {
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      color: var(--muted);
+      opacity: .6;
+    }
+
+    /* ── footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 48px;
+      text-align: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    footer a { color: var(--accent-hi); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── spinner ── */
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,.2);
+      border-top-color: var(--accent-hi);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <main>
+    <nav>
+      <a href="#" class="nav-logo">
+        <div class="logo-mark">C</div>
+        circe
+      </a>
+      <div class="nav-links">
+        <a href="#download">Download</a>
+        <a href="#changelog">Changelog</a>
+        <a href="https://github.com/gonzalomass/circe" target="_blank">GitHub</a>
+      </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-badge">
+        <span class="badge-dot"></span>
+        <span id="hero-version">Loading latest release…</span>
+      </div>
+
+      <h1>
+        Script runner for<br/>
+        <span class="gradient-text">every project.</span>
+      </h1>
+
+      <p class="hero-sub">
+        Run, monitor, and manage npm scripts across all your projects.
+        No terminal required — just open Circe and click run.
+      </p>
+
+      <div id="version-info">
+        <span class="spinner" id="ver-spinner"></span>
+        <span id="ver-text" style="display:none">
+          Version <span class="ver" id="ver-num">—</span> &nbsp;·&nbsp; Released <span id="ver-date">—</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Download grid -->
+    <section id="download">
+      <div class="download-grid">
+
+        <!-- macOS -->
+        <div class="dl-card mac" id="card-mac">
+          <div class="dl-icon">🍎</div>
+          <div>
+            <div class="dl-label">macOS</div>
+            <div class="dl-meta" id="meta-mac">arm64 + x64 · .dmg</div>
+          </div>
+          <div class="dl-pill dl-loading" id="pill-mac">
+            <span class="spinner"></span> Loading…
+          </div>
+        </div>
+
+        <!-- Windows -->
+        <div class="dl-card win" id="card-win">
+          <div class="dl-icon">🪟</div>
+          <div>
+            <div class="dl-label">Windows</div>
+            <div class="dl-meta" id="meta-win">x64 · NSIS installer</div>
+          </div>
+          <div class="dl-pill dl-loading" id="pill-win">
+            <span class="spinner"></span> Loading…
+          </div>
+        </div>
+
+        <!-- Linux -->
+        <div class="dl-card lnx" id="card-lnx">
+          <div class="dl-icon">🐧</div>
+          <div>
+            <div class="dl-label">Linux</div>
+            <div class="dl-meta" id="meta-lnx">x64 · AppImage</div>
+          </div>
+          <div class="dl-pill dl-loading" id="pill-lnx">
+            <span class="spinner"></span> Loading…
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Requirements -->
+    <section class="reqs">
+      <div class="section-label">System requirements</div>
+      <div class="reqs-grid">
+        <div class="req-item">
+          <span class="req-os">🍎 macOS</span>
+          <span class="req-detail">macOS 10.13 (High Sierra)+</span>
+          <span class="req-detail" style="font-size:11px;color:var(--muted)">npm required for running scripts</span>
+        </div>
+        <div class="req-item">
+          <span class="req-os">🪟 Windows</span>
+          <span class="req-detail">Windows 10 64-bit+</span>
+          <span class="req-detail" style="font-size:11px;color:var(--muted)">npm required for running scripts</span>
+        </div>
+        <div class="req-item">
+          <span class="req-os">🐧 Linux</span>
+          <span class="req-detail">Ubuntu 18.04+ / glibc 2.17+</span>
+          <span class="req-detail" style="font-size:11px;color:var(--muted)">npm required for running scripts</span>
+        </div>
+      </div>
+      <p style="margin-top:16px;font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">
+        Node.js is <strong style="color:var(--text)">not required</strong> — Circe bundles its own runtime. npm is only needed for the scripts you run inside your projects.
+      </p>
+    </section>
+
+    <!-- Changelog -->
+    <section class="changelog" id="changelog">
+      <div class="section-label">Changelog</div>
+      <div id="changelog-entries">
+        <div class="cl-entry">
+          <p class="cl-empty"><span class="spinner"></span> &nbsp;Fetching releases…</p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      Built with ⚡ by <a href="https://github.com/gonzalomass" target="_blank">gonzalomass</a> &nbsp;·&nbsp;
+      <a href="https://github.com/gonzalomass/circe/releases" target="_blank">All releases on GitHub</a> &nbsp;·&nbsp;
+      <a href="https://github.com/gonzalomass/circe/issues" target="_blank">Report a bug</a>
+    </footer>
+  </main>
+
+  <script>
+    const OWNER = 'gonzalomass';
+    const REPO  = 'circe';
+    const API   = `https://api.github.com/repos/${OWNER}/${REPO}/releases`;
+
+    function fmtDate(iso) {
+      return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function fileSize(bytes) {
+      if (!bytes) return '';
+      if (bytes > 1024 * 1024) return ` · ${(bytes / 1024 / 1024).toFixed(1)} MB`;
+      return ` · ${(bytes / 1024).toFixed(0)} KB`;
+    }
+
+    function findAsset(assets, patterns) {
+      for (const pat of patterns) {
+        const a = assets.find(a => pat.test(a.name));
+        if (a) return a;
+      }
+      return null;
+    }
+
+    function setCard(id, pillId, metaId, asset, label) {
+      const pill = document.getElementById(pillId);
+      const meta = document.getElementById(metaId);
+      const card = document.getElementById(id);
+      if (asset) {
+        pill.className = 'dl-pill';
+        pill.innerHTML = `↓ Download ${label}`;
+        pill.style.cursor = 'pointer';
+        meta.textContent = meta.textContent.split(' ·')[0] + fileSize(asset.size);
+        card.onclick = () => window.open(asset.browser_download_url, '_blank');
+      } else {
+        pill.className = 'dl-pill dl-loading';
+        pill.innerHTML = 'Not yet available';
+        pill.style.opacity = '0.4';
+      }
+    }
+
+    async function loadReleases() {
+      try {
+        const res = await fetch(API + '?per_page=10');
+        if (!res.ok) throw new Error(`GitHub API: ${res.status}`);
+        const releases = await res.json();
+
+        if (!releases.length) throw new Error('No releases found');
+
+        const latest = releases[0];
+        const ver = latest.tag_name;
+        const date = fmtDate(latest.published_at);
+
+        // Hero version
+        document.getElementById('hero-version').textContent = `Latest: ${ver}`;
+        document.getElementById('ver-spinner').style.display = 'none';
+        document.getElementById('ver-text').style.display = 'inline';
+        document.getElementById('ver-num').textContent = ver;
+        document.getElementById('ver-date').textContent = date;
+
+        // Download buttons
+        const assets = latest.assets || [];
+        setCard('card-mac', 'pill-mac', 'meta-mac',
+          findAsset(assets, [/\.dmg$/i]),
+          '.dmg');
+        setCard('card-win', 'pill-win', 'meta-win',
+          findAsset(assets, [/Setup.*\.exe$/i, /\.exe$/i]),
+          '.exe');
+        setCard('card-lnx', 'pill-lnx', 'meta-lnx',
+          findAsset(assets, [/\.AppImage$/i]),
+          '.AppImage');
+
+        // Changelog
+        const entries = document.getElementById('changelog-entries');
+        entries.innerHTML = '';
+        for (let i = 0; i < Math.min(releases.length, 5); i++) {
+          const r = releases[i];
+          const body = r.body
+            ? r.body
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/^#{1,3} (.*)/gm, '<strong>$1</strong>')
+                .replace(/^- (.*)/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+            : '<em>No release notes.</em>';
+
+          entries.innerHTML += `
+            <div class="cl-entry">
+              <div class="cl-header">
+                <span class="cl-version">
+                  ${r.tag_name}
+                  ${i === 0 ? '<span class="cl-latest">Latest</span>' : ''}
+                  ${r.prerelease ? '<span class="cl-latest" style="background:rgba(234,179,8,.15);border-color:rgba(234,179,8,.3);color:#fde047">Pre-release</span>' : ''}
+                </span>
+                <span class="cl-date">${fmtDate(r.published_at)}</span>
+              </div>
+              <div class="cl-body">${body}</div>
+            </div>`;
+        }
+      } catch (err) {
+        // No releases yet — show placeholder
+        document.getElementById('hero-version').textContent = 'Coming soon';
+        document.getElementById('ver-spinner').style.display = 'none';
+        document.getElementById('ver-text').style.display = 'inline';
+        document.getElementById('ver-num').textContent = 'v1.0.0';
+        document.getElementById('ver-date').textContent = 'Not yet released';
+
+        ['pill-mac','pill-win','pill-lnx'].forEach(id => {
+          const el = document.getElementById(id);
+          el.className = 'dl-pill dl-loading';
+          el.innerHTML = 'Coming soon';
+          el.style.opacity = '0.4';
+        });
+
+        document.getElementById('changelog-entries').innerHTML = `
+          <div class="cl-entry">
+            <p class="cl-empty">No releases published yet. Check back soon.</p>
+          </div>`;
+      }
+    }
+
+    loadReleases();
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import { ProjectSidebar } from './components/ProjectSidebar';
 import { ProjectTabs } from './components/ProjectTabs';
 import { ScriptPanel } from './components/ScriptPanel';
 import { OutputConsole } from './components/OutputConsole';
+import { UpdateNotification } from './components/UpdateNotification';
 
 export default function App() {
   const { setProjects, setActiveProject, updateProcess, appendOutput } = useCirceStore();
@@ -44,6 +45,7 @@ export default function App() {
         <ScriptPanel />
         <OutputConsole />
       </div>
+      <UpdateNotification />
     </div>
   );
 }

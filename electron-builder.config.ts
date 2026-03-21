@@ -3,6 +3,16 @@ import { Configuration } from 'electron-builder';
 const config: Configuration = {
   appId: 'com.circe.app',
   productName: 'Circe',
+  // Publish config — used by electron-updater to check for updates via GitHub Releases
+  // Set GH_TOKEN env var (or GITHUB_TOKEN in CI) to publish; read-only for update checks
+  publish: [
+    {
+      provider: 'github',
+      owner: 'gonzalomass',   // ← update to your GitHub username/org
+      repo: 'circe',
+      releaseType: 'release'
+    }
+  ],
   directories: {
     buildResources: 'build',
     output: 'dist'

@@ -8,7 +8,11 @@ export const IpcChannels = {
   SCRIPT_RESTART: 'script:restart',
   PROCESS_LIST: 'process:list',
   PROCESS_OUTPUT: 'process:output',
-  PROCESS_STATUS: 'process:status'
+  PROCESS_STATUS: 'process:status',
+  // Auto-updater
+  UPDATER_CHECK: 'updater:check',
+  UPDATER_INSTALL: 'updater:install',
+  UPDATER_STATUS: 'updater:status'
 } as const;
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels];

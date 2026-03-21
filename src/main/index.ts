@@ -5,6 +5,7 @@ import { IpcChannels } from '../shared/ipc-channels';
 import { getProjects, saveProjects, getActiveProjectId, setActiveProjectId } from './store';
 import { loadProject, scanDirectory, showProjectPicker } from './project-scanner';
 import { processManager } from './process-manager';
+import { initUpdater, registerUpdaterIpc } from './updater';
 import { Project } from '../shared/types';
 
 function createWindow(): BrowserWindow {
@@ -15,7 +16,7 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     title: 'Circe',
     backgroundColor: '#070b14',
-    icon: nativeImage.createFromPath(join(__dirname, '../../public/c-logo-1.jpg')),
+    icon: nativeImage.createFromPath(join(__dirname, '../../public/c-logo.png')),
     titleBarStyle: 'hiddenInset', // traffic lights inset into content, no native title bar
     trafficLightPosition: { x: 14, y: 16 }, // vertically centered with sidebar header
     webPreferences: {
@@ -105,15 +106,12 @@ function registerIpcHandlers(): void {
     return true;
   });
 
-  ipcMain.handle(
-    IpcChannels.SCRIPT_RUN,
-    (_event, projectId: string, scriptName: string) => {
-      const projects = getProjects();
-      const project = projects.find((p) => p.id === projectId);
-      if (!project) throw new Error(`Project not found: ${projectId}`);
-      return processManager.spawn(projectId, project.path, scriptName);
-    }
-  );
+  ipcMain.handle(IpcChannels.SCRIPT_RUN, (_event, projectId: string, scriptName: string) => {
+    const projects = getProjects();
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) throw new Error(`Project not found: ${projectId}`);
+    return processManager.spawn(projectId, project.path, scriptName);
+  });
 
   ipcMain.handle(IpcChannels.SCRIPT_STOP, async (_event, processId: string) => {
     await processManager.kill(processId);
@@ -133,13 +131,18 @@ function registerIpcHandlers(): void {
 function resolveIconPath(): string {
   // In dev: __dirname = out/main, project root is two levels up
   // In production: resources/app/ or similar — app.getAppPath() is reliable
-  const devPath = join(__dirname, '../../public/c-logo-1.jpg');
-  const prodPath = join(app.getAppPath(), 'public', 'c-logo-1.jpg');
+  const devPath = join(__dirname, '../../public/c-logo.png');
+  const prodPath = join(app.getAppPath(), 'public', 'c-logo.png');
   return existsSync(devPath) ? devPath : prodPath;
 }
 
+let mainWindow: BrowserWindow | null = null;
+const getMainWindow = () => mainWindow;
+
 app.whenReady().then(() => {
   registerIpcHandlers();
+  initUpdater(getMainWindow);
+  registerUpdaterIpc(getMainWindow);
 
   // Set macOS Dock icon explicitly — BrowserWindow.icon doesn't update the Dock
   if (process.platform === 'darwin' && app.dock) {
@@ -150,11 +153,11 @@ app.whenReady().then(() => {
     }
   }
 
-  createWindow();
+  mainWindow = createWindow();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      mainWindow = createWindow();
     }
   });
 });

@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IpcChannels } from '../shared/ipc-channels';
 import type { Project, ProcessInfo, OutputLine } from '../shared/types';
+import type { UpdateStatus } from '../main/updater';
 
 export interface CirceAPI {
   // Projects
@@ -17,9 +18,14 @@ export interface CirceAPI {
   // Processes
   listProcesses(): Promise<ProcessInfo[]>;
 
+  // Auto-updater
+  checkForUpdates(): Promise<UpdateStatus>;
+  installUpdate(): Promise<void>;
+
   // Events
   onProcessOutput(callback: (line: OutputLine) => void): () => void;
   onProcessStatus(callback: (info: ProcessInfo) => void): () => void;
+  onUpdateStatus(callback: (status: UpdateStatus) => void): () => void;
 }
 
 const api: CirceAPI = {
@@ -35,6 +41,9 @@ const api: CirceAPI = {
 
   listProcesses: () => ipcRenderer.invoke(IpcChannels.PROCESS_LIST),
 
+  checkForUpdates: () => ipcRenderer.invoke(IpcChannels.UPDATER_CHECK),
+  installUpdate: () => ipcRenderer.invoke(IpcChannels.UPDATER_INSTALL),
+
   onProcessOutput: (callback) => {
     const handler = (_event: Electron.IpcRendererEvent, line: OutputLine) => callback(line);
     ipcRenderer.on(IpcChannels.PROCESS_OUTPUT, handler);
@@ -45,6 +54,12 @@ const api: CirceAPI = {
     const handler = (_event: Electron.IpcRendererEvent, info: ProcessInfo) => callback(info);
     ipcRenderer.on(IpcChannels.PROCESS_STATUS, handler);
     return () => ipcRenderer.removeListener(IpcChannels.PROCESS_STATUS, handler);
+  },
+
+  onUpdateStatus: (callback) => {
+    const handler = (_event: Electron.IpcRendererEvent, status: UpdateStatus) => callback(status);
+    ipcRenderer.on(IpcChannels.UPDATER_STATUS, handler);
+    return () => ipcRenderer.removeListener(IpcChannels.UPDATER_STATUS, handler);
   }
 };
 
