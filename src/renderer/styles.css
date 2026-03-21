@@ -56,7 +56,7 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
-    border-radius: 18px;
+    border-radius: 10px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
   }
 
@@ -68,7 +68,7 @@
   .glass-input {
     background: rgba(255,255,255,0.04);
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
+    border-radius: 5px;
     color: var(--text-primary);
     padding: 0.5rem 0.75rem;
     outline: none;
@@ -88,7 +88,7 @@
     font-weight: 600;
     font-size: 0.8125rem;
     border: none;
-    border-radius: 8px;
+    border-radius: 5px;
     padding: 0.5rem 1rem;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -107,7 +107,7 @@
     color: var(--text-secondary);
     font-size: 0.8125rem;
     border: 1px solid var(--glass-border);
-    border-radius: 8px;
+    border-radius: 5px;
     padding: 0.5rem 1rem;
     cursor: pointer;
     transition: all 0.2s ease;

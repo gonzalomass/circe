@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useCirceStore } from '../store';
 import { Project } from '../../shared/types';
 
@@ -27,6 +28,8 @@ function CirceSignil() {
 export function ProjectSidebar() {
   const { projects, activeProjectId, setActiveProject, addProject, removeProject, setProjects } =
     useCirceStore();
+  const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+  const [labelDraft, setLabelDraft] = useState('');
 
   const handleAddProject = async () => {
     const project = await window.circe.addProject();
@@ -47,10 +50,24 @@ export function ProjectSidebar() {
 
   const handleRemove = async (e: React.MouseEvent, project: Project) => {
     e.stopPropagation();
-    const confirmed = confirm(`Remove "${project.name}" from Circe?`);
+    const confirmed = confirm(`Remove "${project.label ?? project.name}" from Circe?`);
     if (!confirmed) return;
     await window.circe.removeProject(project.id);
     removeProject(project.id);
+  };
+
+  const startEditLabel = (e: React.MouseEvent, project: Project) => {
+    e.stopPropagation();
+    setEditingLabelId(project.id);
+    setLabelDraft(project.label ?? project.name);
+  };
+
+  const saveLabel = (projectId: string) => {
+    const trimmed = labelDraft.trim();
+    setProjects(projects.map((p) =>
+      p.id === projectId ? { ...p, label: trimmed || undefined } : p
+    ));
+    setEditingLabelId(null);
   };
 
   return (
@@ -72,31 +89,60 @@ export function ProjectSidebar() {
           </div>
         ) : (
           <ul className="space-y-0.5">
-            {projects.map((project) => (
-              <li
-                key={project.id}
-                onClick={() => setActiveProject(project.id)}
-                className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all duration-150 ${
-                  activeProjectId === project.id
-                    ? 'sidebar-active'
-                    : 'hover:bg-surface-hover'
-                }`}
-              >
-                <div className="min-w-0 flex-1">
-                  <div className={`text-xs font-medium truncate ${activeProjectId === project.id ? 'text-accent' : 'text-text-primary'}`}>
-                    {project.name}
-                  </div>
-                  <div className="text-text-tertiary truncate mt-0.5" style={{ fontSize: '0.65rem' }}>{project.path}</div>
-                </div>
-                <button
-                  onClick={(e) => handleRemove(e, project)}
-                  className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-red-400 ml-1.5 flex-shrink-0 transition-opacity text-sm leading-none"
-                  title="Remove project"
+            {projects.map((project) => {
+              const displayName = project.label ?? project.name;
+              const isActive = activeProjectId === project.id;
+              return (
+                <li
+                  key={project.id}
+                  onClick={() => setActiveProject(project.id)}
+                  className="group cursor-pointer transition-all duration-150"
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    background: isActive ? 'rgba(6,182,212,0.08)' : 'transparent',
+                    border: isActive ? '1px solid rgba(6,182,212,0.25)' : '1px solid transparent',
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
                 >
-                  &times;
-                </button>
-              </li>
-            ))}
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="min-w-0 flex-1">
+                      {editingLabelId === project.id ? (
+                        <input
+                          autoFocus
+                          value={labelDraft}
+                          onChange={(e) => setLabelDraft(e.target.value)}
+                          onBlur={() => saveLabel(project.id)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') saveLabel(project.id); if (e.key === 'Escape') setEditingLabelId(null); }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="glass-input w-full py-0.5 text-xs"
+                          placeholder="Project label..."
+                        />
+                      ) : (
+                        <div
+                          className={`text-xs font-medium truncate ${isActive ? 'text-accent' : 'text-text-primary'}`}
+                          onDoubleClick={(e) => startEditLabel(e, project)}
+                          title="Double-click to set label"
+                        >
+                          {displayName}
+                        </div>
+                      )}
+                      <div className="text-text-tertiary truncate mt-0.5" style={{ fontSize: '0.6rem' }}>
+                        {project.label ? project.name : project.path.split('/').slice(-2).join('/')}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => handleRemove(e, project)}
+                      className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-red-400 flex-shrink-0 transition-opacity text-sm leading-none mt-0.5"
+                      title="Remove project"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

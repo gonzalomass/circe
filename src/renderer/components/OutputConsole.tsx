@@ -2,7 +2,15 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import AnsiToHtml from 'ansi-to-html';
 import { useCirceStore } from '../store';
-import { OutputLine } from '../../shared/types';
+import { OutputLine, Project } from '../../shared/types';
+
+function projectPrefix(project: Project | undefined): string {
+  if (!project) return '';
+  if (project.label) return project.label;
+  // Use last two path segments as a short context
+  const parts = project.path.replace(/\\/g, '/').split('/').filter(Boolean);
+  return parts.slice(-2).join('/');
+}
 
 const ansiConverter = new AnsiToHtml({
   fg: '#d4d4d4',
@@ -49,7 +57,7 @@ function OutputLineRow({ line, searchQuery }: { line: OutputLine; searchQuery: s
 }
 
 export function OutputConsole() {
-  const { processes, outputs, clearOutput } = useCirceStore();
+  const { processes, outputs, clearOutput, projects } = useCirceStore();
   const [activeProcessId, setActiveProcessId] = useState<string | null>(null);
   const [autoScroll, setAutoScroll] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,27 +114,39 @@ export function OutputConsole() {
     <div className="h-72 min-h-[200px] flex flex-col" style={{ background: '#050810', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       {/* Tab bar */}
       <div className="flex items-center overflow-x-auto flex-shrink-0" style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-        {processList.map((proc) => (
-          <button
-            key={proc.id}
-            onClick={() => setActiveProcessId(proc.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs whitespace-nowrap rounded-md mx-0.5 my-0.5 transition-all duration-150 relative ${
-              activeProcessId === proc.id
-                ? 'text-accent bg-accent/10'
-                : 'text-text-secondary hover:text-text-primary hover:bg-glass-bg'
-            }`}
-          >
-            {proc.status === 'running' && <span className="pulse-dot" />}
-            {proc.scriptName}
-          </button>
-        ))}
+        {processList.map((proc) => {
+          const proj = projects.find((p) => p.id === proc.projectId);
+          const prefix = projectPrefix(proj);
+          const isActiveTab = activeProcessId === proc.id;
+          return (
+            <button
+              key={proc.id}
+              onClick={() => setActiveProcessId(proc.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs whitespace-nowrap mx-0.5 my-0.5 transition-all duration-150"
+              style={{
+                borderRadius: '5px',
+                border: isActiveTab ? '1px solid rgba(6,182,212,0.3)' : '1px solid transparent',
+                background: isActiveTab ? 'rgba(6,182,212,0.08)' : 'transparent',
+                color: isActiveTab ? '#06b6d4' : 'rgba(255,255,255,0.55)',
+              }}
+            >
+              {proc.status === 'running' && <span className="pulse-dot" />}
+              {prefix && <span className="text-text-tertiary">{prefix}/</span>}
+              <span>{proc.scriptName}</span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Toolbar */}
       <div className="flex items-center gap-2 px-3 py-1.5 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         {activeProcess && (
           <span className={`status-badge status-${activeProcess.status}`}>
-            {activeProcess.scriptName} — {activeProcess.status}
+            {(() => {
+              const proj = projects.find((p) => p.id === activeProcess.projectId);
+              const prefix = projectPrefix(proj);
+              return prefix ? `${prefix} / ${activeProcess.scriptName}` : activeProcess.scriptName;
+            })()} — {activeProcess.status}
           </span>
         )}
         <div className="flex-1" />

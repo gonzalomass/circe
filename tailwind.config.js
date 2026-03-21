@@ -30,10 +30,10 @@ module.exports = {
         mono: ['"SF Mono"', '"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       borderRadius: {
-        'sm': '8px',
-        'md': '12px',
-        'lg': '18px',
-        'xl': '24px',
+        'sm': '5px',
+        'md': '8px',
+        'lg': '10px',
+        'xl': '14px',
       },
       boxShadow: {
         'glass': '0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',

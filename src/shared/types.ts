@@ -4,6 +4,7 @@ export interface Project {
   path: string;
   scripts: Script[];
   description?: string;
+  label?: string; // user-defined display name, overrides name in UI
 }
 
 export interface Script {

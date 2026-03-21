@@ -34,14 +34,17 @@ export function ProjectTabs() {
           <div
             key={project.id}
             onClick={() => setActiveProject(project.id)}
-            className={`group flex items-center gap-1.5 px-3 py-1 text-xs whitespace-nowrap rounded-md mx-0.5 cursor-pointer transition-all duration-150 relative ${
-              isActive
-                ? 'text-accent bg-accent/10'
-                : 'text-text-secondary hover:text-text-primary hover:bg-glass-bg'
-            }`}
+            className={`group flex items-center gap-1.5 px-3 py-1 text-xs whitespace-nowrap mx-0.5 my-1 cursor-pointer transition-all duration-150`}
+            style={{
+              borderRadius: '5px',
+              border: isActive ? '1px solid rgba(6,182,212,0.3)' : '1px solid transparent',
+              background: isActive ? 'rgba(6,182,212,0.08)' : 'transparent',
+              color: isActive ? '#06b6d4' : 'rgba(255,255,255,0.55)',
+            }}
+            onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.color = 'rgba(255,255,255,0.92)'; } }}
+            onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; } }}
           >
-            {isActive && <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-accent" />}
-            <span className="font-medium">{project.name}</span>
+            <span className="font-medium">{project.label ?? project.name}</span>
             {runningCount > 0 && (
               <span className="flex items-center gap-1">
                 <span className="pulse-dot" />
