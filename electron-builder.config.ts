@@ -29,10 +29,14 @@ const config: Configuration = {
   win: {
     target: ['nsis'],
     icon: 'build/icon.ico',
-    // Code signing — set CSC_LINK (path or base64 .pfx) + CSC_KEY_PASSWORD
-    // Optional: CSC_NAME for certificate subject name
+    // Standard OV cert: set CSC_LINK (path or base64 .pfx) + CSC_KEY_PASSWORD
+    // EV cert via Azure Key Vault: set WIN_SIGN_MODE=akv + AKV_* env vars (see build/sign.js)
     signingHashAlgorithms: ['sha256'],
-    sign: process.env.CSC_LINK ? undefined : null   // skip signing if no cert configured
+    // Custom sign hook handles both standard and AKV modes; skips if no signing configured
+    sign: (process.env.CSC_LINK || process.env.WIN_SIGN_MODE === 'akv')
+      ? 'build/sign.js'
+      : null,
+    timeStampServer: 'http://timestamp.digicert.com'
   },
   linux: {
     target: ['AppImage'],

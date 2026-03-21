@@ -73,7 +73,7 @@ Without signing, users see SmartScreen: *"Windows protected your PC."*
 | `CSC_KEY_PASSWORD` | Password for the `.pfx` certificate |
 | `CSC_NAME` | (Optional) Certificate subject name for lookup |
 
-### Local build with signing
+### Standard OV cert — local build
 
 ```bash
 export CSC_LINK="/path/to/certificate.pfx"
@@ -81,6 +81,44 @@ export CSC_KEY_PASSWORD="your-cert-password"
 
 npm run build && npm run package
 ```
+
+For CI, encode the `.pfx` as base64 and store as a secret:
+```bash
+base64 -w 0 certificate.pfx   # Linux
+base64 -i certificate.pfx     # macOS
+```
+Set `CSC_LINK` to the base64 string, `CSC_KEY_PASSWORD` to the cert password.
+
+### EV cert via Azure Key Vault
+
+EV certs live on a hardware token and can't be exported as `.pfx`. Use [AzureSignTool](https://github.com/vcsjones/AzureSignTool) + Key Vault instead:
+
+1. Upload your EV cert to Azure Key Vault
+2. Create a Service Principal with `Key Vault Certificate User` role
+3. Set `WIN_SIGN_MODE=akv` + these env vars:
+
+| Variable | Description |
+|---|---|
+| `WIN_SIGN_MODE` | Set to `akv` to activate Key Vault mode |
+| `AKV_TENANT_ID` | Azure tenant ID |
+| `AKV_CLIENT_ID` | Service principal client ID |
+| `AKV_CLIENT_SECRET` | Service principal secret |
+| `AKV_VAULT_URI` | Key Vault URI (e.g. `https://myvault.vault.azure.net`) |
+| `AKV_CERT_NAME` | Certificate name in Key Vault |
+
+The custom hook in `build/sign.js` handles the AzureSignTool invocation.
+
+### Verify signing (Windows)
+
+```powershell
+# Check signature
+Get-AuthenticodeSignature "dist\Circe Setup x.x.x.exe" | Select-Object Status, SignerCertificate
+
+# Or via signtool
+signtool verify /pa /v "dist\Circe Setup x.x.x.exe"
+```
+
+Expected: `Valid` with your certificate's CN.
 
 ---
 
