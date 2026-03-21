@@ -12,7 +12,9 @@
     "test:watch": "jest --watch",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write src",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:integration": "playwright test tests/integration/",
+    "test:unit": "jest"
   },
   "dependencies": {
     "ansi-to-html": "^0.7.2",
@@ -25,6 +27,7 @@
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
     "@commitlint/config-conventional": "^20.5.0",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.1.0",
     "@testing-library/react": "^14.1.0",
     "@types/jest": "^29.5.0",

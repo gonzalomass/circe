@@ -12,6 +12,7 @@
     "declaration": true,
     "composite": true
   },
+  "exclude": ["out", "node_modules"],
   "references": [
     { "path": "./tsconfig.node.json" },
     { "path": "./tsconfig.web.json" }
