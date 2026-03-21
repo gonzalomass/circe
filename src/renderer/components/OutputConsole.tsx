@@ -6,12 +6,12 @@ import { OutputLine } from '../../shared/types';
 
 const ansiConverter = new AnsiToHtml({
   fg: '#d4d4d4',
-  bg: '#1e1e1e',
+  bg: '#050810',
   colors: {
-    0: '#1e1e1e',
-    1: '#f87171',
-    2: '#4ade80',
-    3: '#facc15',
+    0: '#050810',
+    1: '#ff453a',
+    2: '#30d158',
+    3: '#ffd60a',
     4: '#60a5fa',
     5: '#c084fc',
     6: '#22d3ee',
@@ -24,7 +24,7 @@ function highlightText(text: string, query: string): string {
   const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return text.replace(
     new RegExp(`(${escaped})`, 'gi'),
-    '<mark style="background:#f59e0b;color:#1a1a1a;border-radius:2px;padding:0 1px">$1</mark>'
+    '<mark style="background:#06b6d4;color:#070b14;border-radius:2px;padding:0 1px">$1</mark>'
   );
 }
 
@@ -38,8 +38,8 @@ function OutputLineRow({ line, searchQuery }: { line: OutputLine; searchQuery: s
     line.type === 'stderr'
       ? 'text-red-400'
       : line.type === 'system'
-        ? 'text-blue-400 italic'
-        : 'text-gray-300';
+        ? 'text-accent italic'
+        : 'text-text-primary';
 
   return (
     <div className={`px-3 py-px font-mono text-xs leading-5 ${colorClass} hover:bg-white/5`}>
@@ -96,24 +96,24 @@ export function OutputConsole() {
 
   if (processList.length === 0) {
     return (
-      <div className="h-52 min-h-[200px] bg-bg-dark border-t border-border flex items-center justify-center text-gray-600 text-sm">
+      <div className="h-52 min-h-[200px] flex items-center justify-center text-text-tertiary text-sm" style={{ background: '#050810', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         Run a script to see output here
       </div>
     );
   }
 
   return (
-    <div className="h-72 min-h-[200px] bg-bg-dark border-t border-border flex flex-col">
+    <div className="h-72 min-h-[200px] flex flex-col" style={{ background: '#050810', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
       {/* Tab bar */}
-      <div className="flex items-center bg-surface border-b border-border overflow-x-auto flex-shrink-0">
+      <div className="flex items-center overflow-x-auto flex-shrink-0" style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         {processList.map((proc) => (
           <button
             key={proc.id}
             onClick={() => setActiveProcessId(proc.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs whitespace-nowrap border-b-2 transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs whitespace-nowrap rounded-md mx-0.5 my-0.5 transition-all duration-150 relative ${
               activeProcessId === proc.id
-                ? 'border-accent text-white'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
+                ? 'text-accent bg-accent/10'
+                : 'text-text-secondary hover:text-text-primary hover:bg-glass-bg'
             }`}
           >
             {proc.status === 'running' && <span className="pulse-dot" />}
@@ -123,7 +123,7 @@ export function OutputConsole() {
       </div>
 
       {/* Toolbar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-surface/50 border-b border-border flex-shrink-0">
+      <div className="flex items-center gap-2 px-3 py-1.5 flex-shrink-0" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         {activeProcess && (
           <span className={`status-badge status-${activeProcess.status}`}>
             {activeProcess.scriptName} — {activeProcess.status}
@@ -136,15 +136,15 @@ export function OutputConsole() {
             placeholder="Search..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-40 px-2 py-0.5 bg-bg text-gray-300 text-xs rounded border border-border focus:border-accent outline-none"
+            className="glass-input w-40 py-0.5 text-xs"
           />
           {matchCount !== null && (
-            <span className={`text-xs ${matchCount === 0 ? 'text-red-400' : 'text-yellow-400'}`}>
+            <span className={`text-xs ${matchCount === 0 ? 'text-status-error' : 'text-accent'}`}>
               {matchCount}/{totalLines} matches
             </span>
           )}
         </div>
-        <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
+        <label className="flex items-center gap-1 text-xs text-text-secondary cursor-pointer">
           <input
             type="checkbox"
             checked={autoScroll}
@@ -156,7 +156,7 @@ export function OutputConsole() {
         {activeProcessId && (
           <button
             onClick={() => clearOutput(activeProcessId)}
-            className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            className="btn-ghost px-2 py-0.5 text-xs"
           >
             Clear
           </button>

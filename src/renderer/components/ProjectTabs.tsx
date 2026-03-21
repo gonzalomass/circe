@@ -26,32 +26,31 @@ export function ProjectTabs() {
   };
 
   return (
-    <div className="flex items-center bg-surface border-b border-border overflow-x-auto">
+    <div className="flex items-center h-9 px-2 overflow-x-auto" style={{ background: 'rgba(255,255,255,0.02)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
       {projects.map((project) => {
         const isActive = activeProjectId === project.id;
         const runningCount = runningCountByProject(project.id);
-
         return (
           <div
             key={project.id}
-            className={`group flex items-center gap-2 px-3 py-2 text-sm whitespace-nowrap border-b-2 transition-colors cursor-pointer ${
-              isActive
-                ? 'border-accent text-white bg-bg'
-                : 'border-transparent text-gray-400 hover:text-gray-200 hover:bg-surface-hover'
-            }`}
             onClick={() => setActiveProject(project.id)}
+            className={`group flex items-center gap-1.5 px-3 py-1 text-xs whitespace-nowrap rounded-md mx-0.5 cursor-pointer transition-all duration-150 relative ${
+              isActive
+                ? 'text-accent bg-accent/10'
+                : 'text-text-secondary hover:text-text-primary hover:bg-glass-bg'
+            }`}
           >
-            <span>{project.name}</span>
+            {isActive && <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-accent" />}
+            <span className="font-medium">{project.name}</span>
             {runningCount > 0 && (
-              <span className="flex items-center gap-1 text-xs">
+              <span className="flex items-center gap-1">
                 <span className="pulse-dot" />
-                <span className="text-green-400">{runningCount}</span>
+                <span className="text-status-online text-[10px] font-medium">{runningCount}</span>
               </span>
             )}
             <button
               onClick={(e) => handleClose(e, project.id, project.name)}
-              className="opacity-0 group-hover:opacity-100 text-gray-500 hover:text-red-400 transition-opacity text-xs leading-none ml-0.5"
-              title="Close tab"
+              className="opacity-0 group-hover:opacity-100 text-text-tertiary hover:text-red-400 transition-opacity ml-0.5 text-sm leading-none"
             >
               &times;
             </button>
