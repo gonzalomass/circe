@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, nativeImage } from 'electron';
 import { join } from 'path';
 import { IpcChannels } from '../shared/ipc-channels';
 import { getProjects, saveProjects, getActiveProjectId, setActiveProjectId } from './store';
@@ -14,6 +14,7 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     title: 'Circe',
     backgroundColor: '#070b14',
+    icon: nativeImage.createFromPath(join(app.getAppPath(), 'public', 'c-logo-1.jpg')),
     titleBarStyle: 'hiddenInset', // traffic lights inset into content, no native title bar
     trafficLightPosition: { x: 14, y: 16 }, // vertically centered with sidebar header
     webPreferences: {

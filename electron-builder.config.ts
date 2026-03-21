@@ -10,7 +10,8 @@ const config: Configuration = {
   files: ['out/**/*', 'package.json'],
   mac: {
     target: ['dmg'],
-    category: 'public.app-category.developer-tools'
+    category: 'public.app-category.developer-tools',
+    icon: 'build/icon.icns'
   },
   win: {
     target: ['nsis'],

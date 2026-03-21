@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useCirceStore } from '../store';
 import { Project } from '../../shared/types';
+import circeLogo from '../../../public/c-logo-1.jpg';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function CirceSignil() {
   return (
     <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -83,7 +85,7 @@ export function ProjectSidebar() {
         }}
       >
         <div style={{ WebkitAppRegion: 'no-drag' as React.CSSProperties['WebkitAppRegion'] }} className="flex items-center gap-2.5">
-          <CirceSignil />
+          <img src={circeLogo} alt="Circe" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
           <div>
             <div className="text-sm font-semibold text-text-primary tracking-wide">Circe</div>
             <div className="text-xs text-text-tertiary" style={{ fontSize: '0.65rem' }}>Script Manager</div>
