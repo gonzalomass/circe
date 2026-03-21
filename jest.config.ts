@@ -19,7 +19,7 @@ const config: Config = {
       },
       testEnvironment: 'jsdom',
       moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
-      setupFilesAfterSetup: ['@testing-library/jest-dom']
+      setupFilesAfterEnv: ['@testing-library/jest-dom']
     }
   ]
 };
