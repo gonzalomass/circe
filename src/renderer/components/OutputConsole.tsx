@@ -19,8 +19,20 @@ const ansiConverter = new AnsiToHtml({
   }
 });
 
-function OutputLineRow({ line }: { line: OutputLine }) {
-  const html = useMemo(() => ansiConverter.toHtml(line.text), [line.text]);
+function highlightText(text: string, query: string): string {
+  if (!query) return text;
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return text.replace(
+    new RegExp(`(${escaped})`, 'gi'),
+    '<mark style="background:#f59e0b;color:#1a1a1a;border-radius:2px;padding:0 1px">$1</mark>'
+  );
+}
+
+function OutputLineRow({ line, searchQuery }: { line: OutputLine; searchQuery: string }) {
+  const html = useMemo(() => {
+    const ansiHtml = ansiConverter.toHtml(line.text);
+    return searchQuery ? highlightText(ansiHtml, searchQuery) : ansiHtml;
+  }, [line.text, searchQuery]);
 
   const colorClass =
     line.type === 'stderr'
@@ -61,17 +73,25 @@ export function OutputConsole() {
     return lines.filter((l) => l.text.toLowerCase().includes(lower));
   }, [activeProcessId, outputs, searchQuery]);
 
-  // Auto-scroll on new output
+  // Auto-scroll on new output (only when not searching)
   useEffect(() => {
-    if (autoScroll && filteredLines.length > 0) {
+    if (autoScroll && !searchQuery && filteredLines.length > 0) {
       virtuosoRef.current?.scrollToIndex({
         index: filteredLines.length - 1,
         behavior: 'smooth'
       });
     }
-  }, [filteredLines.length, autoScroll]);
+  }, [filteredLines.length, autoScroll, searchQuery]);
+
+  // Scroll to first match when search query changes
+  useEffect(() => {
+    if (searchQuery && filteredLines.length > 0) {
+      virtuosoRef.current?.scrollToIndex({ index: 0, behavior: 'smooth' });
+    }
+  }, [searchQuery, filteredLines.length]);
 
   const activeProcess = activeProcessId ? processes[activeProcessId] : null;
+  const totalLines = activeProcessId ? (outputs[activeProcessId]?.length ?? 0) : 0;
   const matchCount = searchQuery ? filteredLines.length : null;
 
   if (processList.length === 0) {
@@ -119,7 +139,9 @@ export function OutputConsole() {
             className="w-40 px-2 py-0.5 bg-bg text-gray-300 text-xs rounded border border-border focus:border-accent outline-none"
           />
           {matchCount !== null && (
-            <span className="text-xs text-gray-500">{matchCount} matches</span>
+            <span className={`text-xs ${matchCount === 0 ? 'text-red-400' : 'text-yellow-400'}`}>
+              {matchCount}/{totalLines} matches
+            </span>
           )}
         </div>
         <label className="flex items-center gap-1 text-xs text-gray-400 cursor-pointer">
@@ -146,7 +168,7 @@ export function OutputConsole() {
         <Virtuoso
           ref={virtuosoRef}
           data={filteredLines}
-          itemContent={(_, line) => <OutputLineRow line={line} />}
+          itemContent={(_, line) => <OutputLineRow line={line} searchQuery={searchQuery} />}
           followOutput={autoScroll ? 'smooth' : false}
           className="h-full"
         />
