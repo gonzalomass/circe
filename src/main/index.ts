@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell, nativeImage } from 'electron';
 import { join } from 'path';
+import { existsSync } from 'fs';
 import { IpcChannels } from '../shared/ipc-channels';
 import { getProjects, saveProjects, getActiveProjectId, setActiveProjectId } from './store';
 import { loadProject, scanDirectory, showProjectPicker } from './project-scanner';
@@ -14,7 +15,7 @@ function createWindow(): BrowserWindow {
     minHeight: 600,
     title: 'Circe',
     backgroundColor: '#070b14',
-    icon: nativeImage.createFromPath(join(app.getAppPath(), 'public', 'c-logo-1.jpg')),
+    icon: nativeImage.createFromPath(join(__dirname, '../../public/c-logo-1.jpg')),
     titleBarStyle: 'hiddenInset', // traffic lights inset into content, no native title bar
     trafficLightPosition: { x: 14, y: 16 }, // vertically centered with sidebar header
     webPreferences: {
@@ -128,8 +129,27 @@ function registerIpcHandlers(): void {
   });
 }
 
+// Resolve icon path — works in both dev and packaged
+function resolveIconPath(): string {
+  // In dev: __dirname = out/main, project root is two levels up
+  // In production: resources/app/ or similar — app.getAppPath() is reliable
+  const devPath = join(__dirname, '../../public/c-logo-1.jpg');
+  const prodPath = join(app.getAppPath(), 'public', 'c-logo-1.jpg');
+  return existsSync(devPath) ? devPath : prodPath;
+}
+
 app.whenReady().then(() => {
   registerIpcHandlers();
+
+  // Set macOS Dock icon explicitly — BrowserWindow.icon doesn't update the Dock
+  if (process.platform === 'darwin' && app.dock) {
+    const iconPath = resolveIconPath();
+    const icon = nativeImage.createFromPath(iconPath);
+    if (!icon.isEmpty()) {
+      app.dock.setIcon(icon);
+    }
+  }
+
   createWindow();
 
   app.on('activate', () => {
