@@ -54,7 +54,7 @@ describe('ProjectSidebar', () => {
     });
 
     render(<ProjectSidebar />);
-    fireEvent.click(screen.getByText('Add Project'));
+    fireEvent.click(screen.getByText('+ Add Project'));
 
     expect(mockCirce.addProject).toHaveBeenCalled();
   });

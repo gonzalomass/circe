@@ -25,7 +25,9 @@ const config: Config = {
       moduleNameMapper: {
         // react-virtuoso and ansi-to-html use ESM — stub them for jest
         'react-virtuoso': '<rootDir>/src/renderer/__tests__/__mocks__/react-virtuoso.tsx',
-        'ansi-to-html': '<rootDir>/src/renderer/__tests__/__mocks__/ansi-to-html.ts'
+        'ansi-to-html': '<rootDir>/src/renderer/__tests__/__mocks__/ansi-to-html.ts',
+        // stub static assets (images, fonts, etc.)
+        '\\.(png|jpg|jpeg|gif|svg|ico|webp|ttf|woff|woff2|eot)$': '<rootDir>/src/renderer/__tests__/__mocks__/fileMock.ts'
       }
     }
   ]
