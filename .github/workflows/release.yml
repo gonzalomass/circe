@@ -44,14 +44,17 @@ jobs:
         if: matrix.os == 'macos-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          # Disable auto-discovery when no cert is configured
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' && 'true' || 'false' }}
-        run: npm run package -- --mac dmg
+          _APPLE_ID: ${{ secrets.APPLE_ID }}
+          _APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          _APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          _CSC_LINK: ${{ secrets.CSC_LINK }}
+          _CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: |
+          # Only export signing vars if the cert secret is actually set
+          [ -n "$_CSC_LINK" ] && export CSC_LINK="$_CSC_LINK" && export CSC_KEY_PASSWORD="$_CSC_KEY_PASSWORD"
+          [ -n "$_APPLE_ID" ] && export APPLE_ID="$_APPLE_ID" && export APPLE_APP_SPECIFIC_PASSWORD="$_APPLE_APP_SPECIFIC_PASSWORD" && export APPLE_TEAM_ID="$_APPLE_TEAM_ID"
+          npm run package -- --mac dmg
+        shell: bash
 
       # ── Windows: sign (OV cert or EV/AKV) ──────────────────────────────────
       # WIN_SIGN_MODE secret: set to 'akv' for Azure Key Vault EV cert, omit for standard OV cert
@@ -59,18 +62,20 @@ jobs:
         if: matrix.os == 'windows-latest'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WIN_SIGN_MODE: ${{ secrets.WIN_SIGN_MODE }}
-          CSC_LINK: ${{ secrets.CSC_LINK_WIN }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD_WIN }}
-          CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          AKV_TENANT_ID: ${{ secrets.AKV_TENANT_ID }}
-          AKV_CLIENT_ID: ${{ secrets.AKV_CLIENT_ID }}
-          AKV_CLIENT_SECRET: ${{ secrets.AKV_CLIENT_SECRET }}
-          AKV_VAULT_URI: ${{ secrets.AKV_VAULT_URI }}
-          AKV_CERT_NAME: ${{ secrets.AKV_CERT_NAME }}
+          _WIN_SIGN_MODE: ${{ secrets.WIN_SIGN_MODE }}
+          _CSC_LINK: ${{ secrets.CSC_LINK_WIN }}
+          _CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD_WIN }}
+          _AKV_TENANT_ID: ${{ secrets.AKV_TENANT_ID }}
+          _AKV_CLIENT_ID: ${{ secrets.AKV_CLIENT_ID }}
+          _AKV_CLIENT_SECRET: ${{ secrets.AKV_CLIENT_SECRET }}
+          _AKV_VAULT_URI: ${{ secrets.AKV_VAULT_URI }}
+          _AKV_CERT_NAME: ${{ secrets.AKV_CERT_NAME }}
         run: |
-          if [ "$WIN_SIGN_MODE" = "akv" ]; then
+          if [ "$_WIN_SIGN_MODE" = "akv" ]; then
             dotnet tool install --global AzureSignTool
+            export WIN_SIGN_MODE=akv AKV_TENANT_ID="$_AKV_TENANT_ID" AKV_CLIENT_ID="$_AKV_CLIENT_ID" AKV_CLIENT_SECRET="$_AKV_CLIENT_SECRET" AKV_VAULT_URI="$_AKV_VAULT_URI" AKV_CERT_NAME="$_AKV_CERT_NAME"
+          elif [ -n "$_CSC_LINK" ]; then
+            export CSC_LINK="$_CSC_LINK" CSC_KEY_PASSWORD="$_CSC_KEY_PASSWORD"
           fi
           npm run package -- --win nsis
         shell: bash
