@@ -51,25 +51,24 @@ jobs:
         run: npm run package
 
       # ── Windows: sign (OV cert or EV/AKV) ──────────────────────────────────
-      - name: Package (Windows — standard OV cert)
-        if: matrix.os == 'windows-latest' && secrets.WIN_SIGN_MODE != 'akv'
+      # WIN_SIGN_MODE secret: set to 'akv' for Azure Key Vault EV cert, omit for standard OV cert
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
         env:
+          WIN_SIGN_MODE: ${{ secrets.WIN_SIGN_MODE }}
           CSC_LINK: ${{ secrets.CSC_LINK_WIN }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD_WIN }}
-        run: npm run package
-
-      - name: Package (Windows — EV cert via Azure Key Vault)
-        if: matrix.os == 'windows-latest' && secrets.WIN_SIGN_MODE == 'akv'
-        env:
-          WIN_SIGN_MODE: akv
           AKV_TENANT_ID: ${{ secrets.AKV_TENANT_ID }}
           AKV_CLIENT_ID: ${{ secrets.AKV_CLIENT_ID }}
           AKV_CLIENT_SECRET: ${{ secrets.AKV_CLIENT_SECRET }}
           AKV_VAULT_URI: ${{ secrets.AKV_VAULT_URI }}
           AKV_CERT_NAME: ${{ secrets.AKV_CERT_NAME }}
         run: |
-          dotnet tool install --global AzureSignTool
+          if [ "$WIN_SIGN_MODE" = "akv" ]; then
+            dotnet tool install --global AzureSignTool
+          fi
           npm run package
+        shell: bash
 
       # ── Linux: no signing needed ────────────────────────────────────────────
       - name: Package (Linux)
