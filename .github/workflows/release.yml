@@ -43,21 +43,26 @@ jobs:
       - name: Package (macOS)
         if: matrix.os == 'macos-latest'
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: npm run package
+          # Disable auto-discovery when no cert is configured
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' && 'true' || 'false' }}
+        run: npm run package -- --mac dmg
 
       # ── Windows: sign (OV cert or EV/AKV) ──────────────────────────────────
       # WIN_SIGN_MODE secret: set to 'akv' for Azure Key Vault EV cert, omit for standard OV cert
       - name: Package (Windows)
         if: matrix.os == 'windows-latest'
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WIN_SIGN_MODE: ${{ secrets.WIN_SIGN_MODE }}
           CSC_LINK: ${{ secrets.CSC_LINK_WIN }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD_WIN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
           AKV_TENANT_ID: ${{ secrets.AKV_TENANT_ID }}
           AKV_CLIENT_ID: ${{ secrets.AKV_CLIENT_ID }}
           AKV_CLIENT_SECRET: ${{ secrets.AKV_CLIENT_SECRET }}
@@ -67,18 +72,15 @@ jobs:
           if [ "$WIN_SIGN_MODE" = "akv" ]; then
             dotnet tool install --global AzureSignTool
           fi
-          # Unset CSC_LINK if empty — electron-builder misinterprets empty string as a path
-          if [ -z "$CSC_LINK" ]; then
-            unset CSC_LINK
-            unset CSC_KEY_PASSWORD
-          fi
-          npm run package
+          npm run package -- --win nsis
         shell: bash
 
       # ── Linux: no signing needed ────────────────────────────────────────────
       - name: Package (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: npm run package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run package -- --linux AppImage
 
       # ── Upload artifacts ────────────────────────────────────────────────────
       - name: Find artifact (macOS)
