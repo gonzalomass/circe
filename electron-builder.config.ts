@@ -49,7 +49,7 @@ const config: Configuration = {
     timeStampServer: 'http://timestamp.digicert.com'
   },
   linux: {
-    target: ['AppImage'],
+    target: [{ target: 'AppImage', arch: ['x64'] }],
     category: 'Development',
     icon: 'build/icon.png'
   },

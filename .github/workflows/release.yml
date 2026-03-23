@@ -67,6 +67,11 @@ jobs:
           if [ "$WIN_SIGN_MODE" = "akv" ]; then
             dotnet tool install --global AzureSignTool
           fi
+          # Unset CSC_LINK if empty — electron-builder misinterprets empty string as a path
+          if [ -z "$CSC_LINK" ]; then
+            unset CSC_LINK
+            unset CSC_KEY_PASSWORD
+          fi
           npm run package
         shell: bash
 
