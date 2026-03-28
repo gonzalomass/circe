@@ -124,6 +124,20 @@ function registerIpcHandlers(): void {
     }
   );
 
+  ipcMain.handle(IpcChannels.PROJECT_REORDER, (_event, projectIds: string[]) => {
+    const projects = getProjects();
+    const projectMap = new Map(projects.map((p) => [p.id, p]));
+    const reordered = projectIds
+      .map((id) => projectMap.get(id))
+      .filter((p): p is Project => p !== undefined);
+    // Append any projects not in the provided list (safety net)
+    for (const p of projects) {
+      if (!projectIds.includes(p.id)) reordered.push(p);
+    }
+    saveProjects(reordered);
+    return reordered;
+  });
+
   ipcMain.handle(IpcChannels.SCRIPT_RUN, (_event, projectId: string, scriptName: string) => {
     const projects = getProjects();
     const project = projects.find((p) => p.id === projectId);

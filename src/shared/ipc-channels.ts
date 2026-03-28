@@ -3,6 +3,7 @@ export const IpcChannels = {
   PROJECT_SCAN_FOLDER: 'project:scan-folder',
   PROJECT_REMOVE: 'project:remove',
   PROJECT_UPDATE: 'project:update',
+  PROJECT_REORDER: 'project:reorder',
   PROJECT_LIST: 'project:list',
   SCRIPT_RUN: 'script:run',
   SCRIPT_STOP: 'script:stop',

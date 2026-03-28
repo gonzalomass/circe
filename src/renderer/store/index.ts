@@ -10,6 +10,7 @@ interface CirceStore {
   setProjects: (projects: Project[]) => void;
   addProject: (project: Project) => void;
   removeProject: (projectId: string) => void;
+  reorderProjects: (fromIndex: number, toIndex: number) => void;
   setActiveProject: (projectId: string | null) => void;
   updateProcess: (info: ProcessInfo) => void;
   appendOutput: (line: OutputLine) => void;
@@ -36,6 +37,14 @@ export const useCirceStore = create<CirceStore>((set) => ({
       projects: state.projects.filter((p) => p.id !== projectId),
       activeProjectId: state.activeProjectId === projectId ? null : state.activeProjectId
     })),
+
+  reorderProjects: (fromIndex, toIndex) =>
+    set((state) => {
+      const updated = [...state.projects];
+      const [moved] = updated.splice(fromIndex, 1);
+      updated.splice(toIndex, 0, moved);
+      return { projects: updated };
+    }),
 
   setActiveProject: (projectId) => set({ activeProjectId: projectId }),
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useCirceStore } from '../store';
 import { Project } from '../../shared/types';
 import circeLogo from '../../../public/c-logo.png';
@@ -108,10 +108,53 @@ function CirceSignil() {
 }
 
 export function ProjectSidebar() {
-  const { projects, activeProjectId, setActiveProject, addProject, removeProject, setProjects } =
+  const { projects, activeProjectId, setActiveProject, addProject, removeProject, setProjects, reorderProjects } =
     useCirceStore();
   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
   const [labelDraft, setLabelDraft] = useState('');
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const dragIndexRef = useRef<number | null>(null);
+
+  const handleDragStart = useCallback((e: React.DragEvent, index: number) => {
+    dragIndexRef.current = index;
+    e.dataTransfer.effectAllowed = 'move';
+    // Make the drag image slightly transparent
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '0.5';
+    }
+  }, []);
+
+  const handleDragEnd = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget instanceof HTMLElement) {
+      e.currentTarget.style.opacity = '1';
+    }
+    setDragOverIndex(null);
+    dragIndexRef.current = null;
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, toIndex: number) => {
+    e.preventDefault();
+    const fromIndex = dragIndexRef.current;
+    if (fromIndex === null || fromIndex === toIndex) {
+      setDragOverIndex(null);
+      return;
+    }
+    // Optimistic UI reorder
+    reorderProjects(fromIndex, toIndex);
+    setDragOverIndex(null);
+    dragIndexRef.current = null;
+    // Persist to electron-store
+    const reordered = [...projects];
+    const [moved] = reordered.splice(fromIndex, 1);
+    reordered.splice(toIndex, 0, moved);
+    window.circe.reorderProjects(reordered.map((p) => p.id));
+  }, [projects, reorderProjects]);
 
   const handleAddProject = async () => {
     const project = await window.circe.addProject();
@@ -205,19 +248,26 @@ export function ProjectSidebar() {
           </div>
         ) : (
           <ul className="space-y-0.5">
-            {projects.map((project) => {
+            {projects.map((project, index) => {
               const displayName = project.label ?? project.name;
               const isActive = activeProjectId === project.id;
+              const isDragOver = dragOverIndex === index;
               return (
                 <li
                   key={project.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDrop={(e) => handleDrop(e, index)}
                   onClick={() => setActiveProject(project.id)}
                   className="group cursor-pointer transition-all duration-150"
                   style={{
                     padding: '6px 10px',
                     borderRadius: '6px',
                     background: isActive ? 'rgba(6,182,212,0.08)' : 'transparent',
-                    border: isActive ? '1px solid rgba(6,182,212,0.25)' : '1px solid transparent'
+                    border: isActive ? '1px solid rgba(6,182,212,0.25)' : '1px solid transparent',
+                    borderTop: isDragOver ? '2px solid rgba(6,182,212,0.6)' : undefined
                   }}
                   onMouseEnter={(e) => {
                     if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.05)';

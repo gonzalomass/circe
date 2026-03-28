@@ -10,6 +10,7 @@ export interface CirceAPI {
   scanFolder(): Promise<Project[]>;
   removeProject(projectId: string): Promise<boolean>;
   updateProject(projectId: string, updates: Partial<Pick<Project, 'label'>>): Promise<Project | null>;
+  reorderProjects(projectIds: string[]): Promise<Project[]>;
 
   // Scripts
   runScript(projectId: string, scriptName: string): Promise<ProcessInfo>;
@@ -36,6 +37,8 @@ const api: CirceAPI = {
   removeProject: (projectId) => ipcRenderer.invoke(IpcChannels.PROJECT_REMOVE, projectId),
   updateProject: (projectId, updates) =>
     ipcRenderer.invoke(IpcChannels.PROJECT_UPDATE, projectId, updates),
+  reorderProjects: (projectIds) =>
+    ipcRenderer.invoke(IpcChannels.PROJECT_REORDER, projectIds),
 
   runScript: (projectId, scriptName) =>
     ipcRenderer.invoke(IpcChannels.SCRIPT_RUN, projectId, scriptName),
