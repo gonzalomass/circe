@@ -1,6 +1,6 @@
 {
   "name": "circe",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Desktop Node.js script manager — run, monitor, and manage npm scripts across projects",
   "main": "./out/main/index.js",
   "scripts": {
