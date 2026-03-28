@@ -106,6 +106,24 @@ function registerIpcHandlers(): void {
     return true;
   });
 
+  ipcMain.handle(
+    IpcChannels.PROJECT_UPDATE,
+    (_event, projectId: string, updates: Partial<Pick<Project, 'label'>>) => {
+      const projects = getProjects();
+      const index = projects.findIndex((p) => p.id === projectId);
+      if (index === -1) return null;
+
+      const updated = { ...projects[index], ...updates };
+      // If label is empty/undefined, remove the key so it falls back to name
+      if (!updated.label) {
+        delete updated.label;
+      }
+      projects[index] = updated;
+      saveProjects(projects);
+      return updated;
+    }
+  );
+
   ipcMain.handle(IpcChannels.SCRIPT_RUN, (_event, projectId: string, scriptName: string) => {
     const projects = getProjects();
     const project = projects.find((p) => p.id === projectId);

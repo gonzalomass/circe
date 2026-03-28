@@ -144,12 +144,15 @@ export function ProjectSidebar() {
     setLabelDraft(project.label ?? project.name);
   };
 
-  const saveLabel = (projectId: string) => {
+  const saveLabel = async (projectId: string) => {
     const trimmed = labelDraft.trim();
+    // Optimistic UI update
     setProjects(
       projects.map((p) => (p.id === projectId ? { ...p, label: trimmed || undefined } : p))
     );
     setEditingLabelId(null);
+    // Persist to electron-store via main process
+    await window.circe.updateProject(projectId, { label: trimmed || undefined });
   };
 
   return (
