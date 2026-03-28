@@ -51,8 +51,16 @@ jobs:
           _CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: |
           # Only export signing vars if the cert secret is actually set
-          [ -n "$_CSC_LINK" ] && export CSC_LINK="$_CSC_LINK" && export CSC_KEY_PASSWORD="$_CSC_KEY_PASSWORD"
-          [ -n "$_APPLE_ID" ] && export APPLE_ID="$_APPLE_ID" && export APPLE_APP_SPECIFIC_PASSWORD="$_APPLE_APP_SPECIFIC_PASSWORD" && export APPLE_TEAM_ID="$_APPLE_TEAM_ID"
+          if [ -n "$_CSC_LINK" ]; then
+            export CSC_LINK="$_CSC_LINK" CSC_KEY_PASSWORD="$_CSC_KEY_PASSWORD"
+          else
+            # Prevent electron-builder from auto-discovering a keychain cert
+            # that might produce a broken signature
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          if [ -n "$_APPLE_ID" ]; then
+            export APPLE_ID="$_APPLE_ID" APPLE_APP_SPECIFIC_PASSWORD="$_APPLE_APP_SPECIFIC_PASSWORD" APPLE_TEAM_ID="$_APPLE_TEAM_ID"
+          fi
           npm run package -- --mac dmg
         shell: bash
 

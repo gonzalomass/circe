@@ -1,5 +1,9 @@
 import { Configuration } from 'electron-builder';
 
+// Detect whether a valid Apple signing certificate is available.
+// CSC_LINK (file/base64) or CSC_NAME (keychain identity) indicate a cert is present.
+const hasSigningCert = !!(process.env.CSC_LINK || process.env.CSC_NAME);
+
 const config: Configuration = {
   appId: 'com.circe.app',
   productName: 'Circe',
@@ -24,17 +28,24 @@ const config: Configuration = {
     ],
     category: 'public.app-category.developer-tools',
     icon: 'build/icon.icns',
-    // Code signing — requires APPLE_TEAM_ID and a valid Developer ID cert in keychain
-    // Set CSC_LINK + CSC_KEY_PASSWORD env vars (or use keychain directly on macOS CI)
-    hardenedRuntime: true,
-    gatekeeperAssess: false,       // let notarization handle this
-    entitlements: 'build/entitlements.mac.plist',
-    entitlementsInherit: 'build/entitlements.mac.plist',
-    notarize: process.env.APPLE_ID
+    // Code signing — requires a valid Developer ID cert in keychain (or CSC_LINK env var).
+    // When no cert is available, identity is set to null to produce a clean unsigned build
+    // that shows "unidentified developer" (bypassable via right-click → Open) instead of
+    // the fatal "damaged and can't be opened" Gatekeeper error.
+    ...(hasSigningCert
       ? {
-          teamId: process.env.APPLE_TEAM_ID!
+          hardenedRuntime: true,
+          gatekeeperAssess: false,
+          entitlements: 'build/entitlements.mac.plist',
+          entitlementsInherit: 'build/entitlements.mac.plist',
+          notarize: process.env.APPLE_ID
+            ? { teamId: process.env.APPLE_TEAM_ID! }
+            : false
         }
-      : false
+      : {
+          identity: null   // skip code signing entirely — no broken signatures
+        }
+    ),
   },
   win: {
     target: ['nsis'],
